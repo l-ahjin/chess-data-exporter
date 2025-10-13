@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Data Exporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: 'hsl(210, 40%, 96.1%)',
+                foreground: 'hsl(215.4, 16.3%, 46.9%)',
+              },
+              background: 'hsl(0, 0%, 100%)',
+              foreground: 'hsl(222.2, 84%, 4.9%)',
+              card: {
+                DEFAULT: 'hsl(0, 0%, 100%)',
+                foreground: 'hsl(222.2, 84%, 4.9%)',
+              },
+              muted: {
+                DEFAULT: 'hsl(210, 40%, 96.1%)',
+                foreground: 'hsl(215.4, 16.3%, 46.9%)',
+              },
+              accent: {
+                DEFAULT: 'hsl(210, 40%, 96.1%)',
+                foreground: 'hsl(222.2, 47.4%, 11.2%)',
+              },
+              border: 'hsl(214.3, 31.8%, 91.4%)',
+              input: 'hsl(214.3, 31.8%, 91.4%)',
+              ring: 'hsl(215, 20.2%, 65.1%)',
+            },
+            dark: {
+              primary: {
+                DEFAULT: 'hsl(217.2, 32.6%, 17.5%)',
+                foreground: 'hsl(210, 40%, 98%)',
+              },
+              background: 'hsl(222.2, 84%, 4.9%)',
+              foreground: 'hsl(210, 40%, 98%)',
+              card: {
+                DEFAULT: 'hsl(222.2, 84%, 4.9%)',
+                foreground: 'hsl(210, 40%, 98%)',
+              },
+              muted: {
+                DEFAULT: 'hsl(217.2, 32.6%, 17.5%)',
+                foreground: 'hsl(215, 20.2%, 65.1%)',
+              },
+              accent: {
+                DEFAULT: 'hsl(217.2, 32.6%, 17.5%)',
+                foreground: 'hsl(210, 40%, 98%)',
+              },
+              border: 'hsl(217.2, 32.6%, 17.5%)',
+              input: 'hsl(217.2, 32.6%, 17.5%)',
+              ring: 'hsl(217.2, 32.6%, 17.5%)',
+            }
+          }
+        }
+      }
+    </script>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.4",
+    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
+    "@dnd-kit/utilities": "https://aistudiocdn.com/@dnd-kit/utilities@^3.2.2",
+    "@dnd-kit/core": "https://aistudiocdn.com/@dnd-kit/core@^6.3.1",
+    "@dnd-kit/sortable": "https://aistudiocdn.com/@dnd-kit/sortable@^10.0.0",
+    "@notionhq/client": "https://aistudiocdn.com/@notionhq/client@^2.2.15"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-background text-foreground dark:bg-dark-background dark:text-dark-foreground">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

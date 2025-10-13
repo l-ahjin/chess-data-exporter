@@ -1,0 +1,5 @@
+{
+  "name": "Chess Data Exporter",
+  "description": "An application to fetch chess game data from Chess.com, parse it, and prepare it for export to services like Google Sheets or Notion.",
+  "requestFramePermissions": []
+}
