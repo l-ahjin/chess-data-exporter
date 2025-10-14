@@ -73,7 +73,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
                 '날짜': {
                     type: 'date',
                     date: {
-                        start: new Date(game.endTime * 1000).toISOString().split('T')[0],
+                        start: new Date(game.endTime * 1000).toISOString(),
                     },
                 },
                 '플랫폼': {
