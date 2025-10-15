@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { useSettings } from '../contexts/SettingsContext';
 import { getPlayerArchives, getGamesFromArchive } from '../services/chesscomService';
-import { exportGamesToNotion } from '../services/notionService';
+import { exportGamesToNotion, checkDuplicateGames } from '../services/notionService';
 import { determineUserResult } from '../utils/pgnParser';
 import { ChessComGame, ProcessedGame } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -26,16 +26,21 @@ const GameResultRibbon: React.FC<{ result: ProcessedGame['userResult'] }> = ({ r
     return <div className={`w-2 h-full absolute left-0 top-0 ${color}`}></div>;
 };
 
-const GameListItem: React.FC<{ game: ProcessedGame; isSelected: boolean; onToggleSelect: (game: ProcessedGame) => void; }> = ({ game, isSelected, onToggleSelect }) => {
+const GameListItem: React.FC<{ game: ProcessedGame; isSelected: boolean; isDuplicate: boolean; onToggleSelect: (game: ProcessedGame) => void; }> = ({ game, isSelected, isDuplicate, onToggleSelect }) => {
     const { white, black, time_class, time_control, rated, url } = game;
     const date = new Date(game.endTime * 1000).toLocaleDateString();
 
     return (
         <div
-            onClick={() => onToggleSelect(game)}
-            className={`relative flex items-center p-4 border rounded-lg transition-all duration-200 cursor-pointer ${isSelected ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+            onClick={() => !isDuplicate && onToggleSelect(game)}
+            className={`relative flex items-center p-4 border rounded-lg transition-all duration-200 ${isDuplicate ? 'cursor-not-allowed opacity-60 bg-red-50 dark:bg-red-900/20 border-red-500' : 'cursor-pointer'} ${isSelected ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
         >
             <GameResultRibbon result={game.userResult} />
+            {isDuplicate && (
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                    Duplicate
+                </div>
+            )}
             <div className="pl-4 grid grid-cols-2 sm:grid-cols-4 gap-4 flex-grow text-sm w-full">
                 <div className="flex flex-col">
                     <span className="font-semibold text-gray-800 dark:text-gray-200">{time_class}</span>
@@ -69,7 +74,7 @@ const GameListItem: React.FC<{ game: ProcessedGame; isSelected: boolean; onToggl
     );
 };
 
-const SortableItem: React.FC<{ game: ProcessedGame; onRemove: (id: string) => void; }> = ({ game, onRemove }) => {
+const SortableItem: React.FC<{ game: ProcessedGame; isDuplicate: boolean; onRemove: (id: string) => void; }> = ({ game, isDuplicate, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: game.id });
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -77,10 +82,10 @@ const SortableItem: React.FC<{ game: ProcessedGame; onRemove: (id: string) => vo
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md mb-2">
+        <div ref={setNodeRef} style={style} className={`flex items-center justify-between p-2 rounded-md mb-2 ${isDuplicate ? 'bg-red-100 dark:bg-red-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
             <div className="flex items-center">
-                <button {...attributes} {...listeners} className="cursor-grab p-1 text-gray-500 dark:text-gray-400">{ICONS.GRIP}</button>
-                <span className="ml-2 text-sm text-gray-800 dark:text-gray-200">{game.white.username} vs {game.black.username}</span>
+                {!isDuplicate && <button {...attributes} {...listeners} className="cursor-grab p-1 text-gray-500 dark:text-gray-400">{ICONS.GRIP}</button>}
+                <span className={`ml-2 text-sm ${isDuplicate ? 'text-red-700 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>{game.white.username} vs {game.black.username} {isDuplicate ? '(Duplicate)' : ''}</span>
             </div>
             <button onClick={() => onRemove(game.id)} className="p-1 text-red-500 hover:text-red-700">{ICONS.TRASH}</button>
         </div>
@@ -113,11 +118,11 @@ const PasswordModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onCancel
                     setPassword('');
                     setError('');
                 } else {
-                    setError('비밀번호가 올바르지 않습니다.');
+                    setError('Incorrect password.');
                     setPassword('');
                 }
             }).catch(error => {
-            setError('비밀번호가 올바르지 않습니다.');
+            setError('Incorrect password.');
             setPassword('');
         })
     };
@@ -133,15 +138,15 @@ const PasswordModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onCancel
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-96">
-                <h2 className="text-xl font-bold mb-4 dark:text-white">비밀번호 확인</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">계속하려면 비밀번호를 입력하세요.</p>
+                <h2 className="text-xl font-bold mb-4 dark:text-white">Confirm Password</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Enter your password to continue.</p>
 
                 <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="비밀번호 입력"
+                    placeholder="Enter password"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                 />
@@ -153,13 +158,13 @@ const PasswordModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onCancel
                         onClick={onCancel}
                         className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
                     >
-                        취소
+                        Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
-                        확인
+                        Confirm
                     </button>
                 </div>
             </div>
@@ -172,8 +177,9 @@ const ImportPage: React.FC = () => {
     const [archives, setArchives] = useState<string[]>([]);
     const [games, setGames] = useState<ProcessedGame[]>([]);
     const [selectedGames, setSelectedGames] = useState<ProcessedGame[]>([]);
+    const [duplicateUrls, setDuplicateUrls] = useState<Set<string>>(new Set());
     const [selectedArchive, setSelectedArchive] = useState<string | null>(null);
-    const [loading, setLoading] = useState({ archives: false, games: false, importing: false });
+    const [loading, setLoading] = useState({ archives: false, games: false, importing: false, checking: false });
     const [error, setError] = useState<string | null>(null);
     const [importStatus, setImportStatus] = useState<{ message: string; success: boolean | null }>({ message: '', success: null });
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -211,7 +217,7 @@ const ImportPage: React.FC = () => {
                         userColor,
                         endTime: game.end_time,
                     };
-                }).reverse(); // Newest first
+                }).reverse();
                 setGames(processed);
             })
             .catch(() => setError("Failed to fetch games for this period."))
@@ -219,6 +225,7 @@ const ImportPage: React.FC = () => {
     }, [settings.chessComUsername]);
 
     const handleToggleSelect = (game: ProcessedGame) => {
+        if (duplicateUrls.has(game.url)) return;
         setSelectedGames(prev =>
             prev.find(g => g.id === game.id)
                 ? prev.filter(g => g.id !== game.id)
@@ -232,32 +239,72 @@ const ImportPage: React.FC = () => {
 
     const handlePasswordConfirm = async () => {
         setShowPasswordModal(false);
-        await performImport();
+        await checkForDuplicates();
     };
 
     const handlePasswordCancel = () => {
         setShowPasswordModal(false);
     };
 
-    const performImport = async () => {
-        setLoading(prev => ({ ...prev, importing: true }));
-        setImportStatus({ message: 'Starting import...', success: null });
+    const checkForDuplicates = async () => {
+        setLoading(prev => ({ ...prev, checking: true }));
+        setImportStatus({ message: 'Checking for duplicates...', success: null });
 
         const { notionDatabaseId } = settings;
         if (!notionDatabaseId) {
             const errorMsg = "Notion Database ID not set in settings.";
             setImportStatus({ message: errorMsg, success: false });
-            setLoading(prev => ({ ...prev, importing: false }));
+            setLoading(prev => ({ ...prev, checking: false }));
             setError(errorMsg);
             return;
         }
 
-        const result = await exportGamesToNotion(selectedGames, notionDatabaseId);
+        const result = await checkDuplicateGames(selectedGames, notionDatabaseId);
+
+        if (!result.success) {
+            setImportStatus({ message: result.message, success: false });
+            setLoading(prev => ({ ...prev, checking: false }));
+            setError(result.message);
+            return;
+        }
+
+        const duplicates = new Set(result.duplicateUrls || []);
+        setDuplicateUrls(duplicates);
+
+        if (duplicates.size > 0) {
+            setImportStatus({
+                message: `Found ${duplicates.size} duplicate game(s). Please remove duplicates and try again.`,
+                success: false
+            });
+            setLoading(prev => ({ ...prev, checking: false }));
+            return;
+        }
+
+        setLoading(prev => ({ ...prev, checking: false }));
+        await performImport();
+    };
+
+    const performImport = async () => {
+        setLoading(prev => ({ ...prev, importing: true }));
+        setImportStatus({ message: 'Importing games...', success: null });
+
+        const { notionDatabaseId } = settings;
+        const nonDuplicateGames = selectedGames.filter(g => !duplicateUrls.has(g.url));
+
+        if (nonDuplicateGames.length === 0) {
+            const errorMsg = "No non-duplicate games to import.";
+            setImportStatus({ message: errorMsg, success: false });
+            setLoading(prev => ({ ...prev, importing: false }));
+            return;
+        }
+
+        const result = await exportGamesToNotion(nonDuplicateGames, notionDatabaseId);
 
         setImportStatus({ message: result.message, success: result.success });
         setLoading(prev => ({ ...prev, importing: false }));
         if (result.success) {
             setSelectedGames([]);
+            setDuplicateUrls(new Set());
         }
     };
 
@@ -273,7 +320,29 @@ const ImportPage: React.FC = () => {
     };
 
     const removeSelectedGame = (id: string) => {
-        setSelectedGames(prev => prev.filter(g => g.id !== id));
+        setSelectedGames(prev => {
+            const updated = prev.filter(g => g.id !== id);
+
+            // If the removed game was a duplicate, update duplicateUrls
+            const removedGame = prev.find(g => g.id === id);
+            if (removedGame && duplicateUrls.has(removedGame.url)) {
+                const newDuplicates = new Set(duplicateUrls);
+                newDuplicates.delete(removedGame.url);
+                setDuplicateUrls(newDuplicates);
+
+                // Clear import status if all duplicates are removed
+                if (newDuplicates.size === 0) {
+                    setImportStatus({ message: '', success: null });
+                } else {
+                    setImportStatus({
+                        message: `Found ${newDuplicates.size} duplicate game(s). Please remove duplicates and try again.`,
+                        success: false
+                    });
+                }
+            }
+
+            return updated;
+        });
     };
 
     const paginatedArchives = useMemo(() => {
@@ -285,6 +354,8 @@ const ImportPage: React.FC = () => {
         const start = (gamesPage - 1) * gamesPerPage;
         return games.slice(start, start + gamesPerPage);
     }, [games, gamesPage]);
+
+    const nonDuplicateCount = selectedGames.filter(g => !duplicateUrls.has(g.url)).length;
 
     if (!settings.chessComUsername) {
         return <div className="text-center p-8 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">Please set your Chess.com username in the settings page.</div>;
@@ -315,7 +386,7 @@ const ImportPage: React.FC = () => {
                         {loading.games ? <LoadingSpinner /> : (
                             <div className="space-y-3">
                                 {paginatedGames.map(game => (
-                                    <GameListItem key={game.id} game={game} isSelected={selectedGames.some(g => g.id === game.id)} onToggleSelect={handleToggleSelect} />
+                                    <GameListItem key={game.id} game={game} isSelected={selectedGames.some(g => g.id === game.id)} isDuplicate={duplicateUrls.has(game.url)} onToggleSelect={handleToggleSelect} />
                                 ))}
                             </div>
                         )}
@@ -326,15 +397,19 @@ const ImportPage: React.FC = () => {
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                         <h2 className="text-xl font-bold mb-4">Selected Games ({selectedGames.length})</h2>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            <div>Ready to import: <span className="font-bold text-blue-600 dark:text-blue-400">{nonDuplicateCount}</span></div>
+                            {duplicateUrls.size > 0 && <div className="text-red-600 dark:text-red-400">Duplicates: <span className="font-bold">{duplicateUrls.size}</span></div>}
+                        </div>
                         <div className="max-h-80 overflow-y-auto mb-4 pr-2">
                             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                 <SortableContext items={selectedGames.map(g => g.id)} strategy={verticalListSortingStrategy}>
-                                    {selectedGames.map(game => <SortableItem key={game.id} game={game} onRemove={removeSelectedGame} />)}
+                                    {selectedGames.map(game => <SortableItem key={game.id} game={game} isDuplicate={duplicateUrls.has(game.url)} onRemove={removeSelectedGame} />)}
                                 </SortableContext>
                             </DndContext>
                         </div>
-                        <button onClick={handleImportClick} disabled={selectedGames.length === 0 || loading.importing} className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                            {loading.importing ? <LoadingSpinner /> : 'Import'}
+                        <button onClick={handleImportClick} disabled={selectedGames.length === 0 || loading.importing || loading.checking} className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            {loading.importing || loading.checking ? <LoadingSpinner /> : 'Import'}
                         </button>
                         {importStatus.message && (
                             <p className={`mt-2 text-sm text-center ${importStatus.success === false ? 'text-red-500' : importStatus.success === true ? 'text-green-500' : 'text-gray-500'}`}>{importStatus.message}</p>
