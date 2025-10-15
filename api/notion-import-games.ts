@@ -58,6 +58,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     for (const game of games) {
         try {
+            // Detect platform from URL
+            const platform = game.url.includes('lichess.org') ? 'Lichess' : 'Chess.com';
 
             // Define the structure for the Notion page properties
             const properties: Record<string, any> = {
@@ -79,7 +81,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
                 '플랫폼': {
                     type: 'select',
                     select: {
-                        name: "Chess.com",
+                        name: platform,
                     },
                 },
                 '유형': {

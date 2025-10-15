@@ -55,19 +55,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     try {
-        // Query database to get all pages with '링크' property (or 'Link' depending on your setup)
-        // We'll query the database and filter by property type 'Chess.com'
-        const query = {
-            database_id: databaseId,
-            filter: {
-                property: '플랫폼',
-                select: {
-                    equals: 'Chess.com'
-                }
-            }
-        };
-
-        const response = await notion.databases.query(query);
+        // Query database to get all pages with '링크' property
+        // We'll query all pages and filter them manually to check both platforms
+        const response = await notion.databases.query({
+            database_id: databaseId
+        });
 
         // Extract existing URLs from the database
         const existingUrls = new Set<string>();

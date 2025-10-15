@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useLocation } from 'react-router-dom';
 
 import { useSettings } from '../contexts/SettingsContext';
 import { getPlayerArchives, getGamesFromArchive } from '../services/chesscomService';
+import { getLichessUser, generateMonthlyArchives, getLichessGamesForMonth } from '../services/lichessService';
 import { exportGamesToNotion, checkDuplicateGames } from '../services/notionService';
 import { determineUserResult } from '../utils/pgnParser';
 import { ChessComGame, ProcessedGame } from '../types';
@@ -173,6 +175,8 @@ const PasswordModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onCancel
 };
 
 const ImportPage: React.FC = () => {
+    const location = useLocation();
+    const platform = new URLSearchParams(location.search).get('platform') || 'chesscom';
     const { settings } = useSettings();
     const [archives, setArchives] = useState<string[]>([]);
     const [games, setGames] = useState<ProcessedGame[]>([]);
@@ -191,38 +195,70 @@ const ImportPage: React.FC = () => {
 
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
+    const username = platform === 'lichess' ? settings.lichessUsername : settings.chessComUsername;
+
     useEffect(() => {
-        if (settings.chessComUsername) {
+        if (username) {
             setLoading(prev => ({ ...prev, archives: true }));
-            getPlayerArchives(settings.chessComUsername)
-                .then(data => setArchives(data.archives.slice().reverse()))
-                .catch(() => setError("Failed to fetch archives. Check username in settings."))
-                .finally(() => setLoading(prev => ({ ...prev, archives: false })));
+
+            if (platform === 'lichess') {
+                getLichessUser(username)
+                    .then(user => {
+                        const monthlyArchives = generateMonthlyArchives(user.createdAt);
+                        setArchives(monthlyArchives);
+                    })
+                    .catch(() => setError("Failed to fetch Lichess user. Check username in settings."))
+                    .finally(() => setLoading(prev => ({ ...prev, archives: false })));
+            } else {
+                getPlayerArchives(username)
+                    .then(data => setArchives(data.archives.slice().reverse()))
+                    .catch(() => setError("Failed to fetch archives. Check username in settings."))
+                    .finally(() => setLoading(prev => ({ ...prev, archives: false })));
+            }
         }
-    }, [settings.chessComUsername]);
+    }, [username, platform]);
 
     const fetchGames = useCallback((archiveUrl: string) => {
         setSelectedArchive(archiveUrl);
         setGames([]);
         setLoading(prev => ({ ...prev, games: true }));
         setGamesPage(1);
-        getGamesFromArchive(archiveUrl)
-            .then(data => {
-                const processed = data.games.map((game: ChessComGame) => {
-                    const { userResult, userColor } = determineUserResult(game, settings.chessComUsername);
-                    return {
-                        id: game.url,
-                        ...game,
-                        userResult,
-                        userColor,
-                        endTime: game.end_time,
-                    };
-                }).reverse();
-                setGames(processed);
-            })
-            .catch(() => setError("Failed to fetch games for this period."))
-            .finally(() => setLoading(prev => ({ ...prev, games: false })));
-    }, [settings.chessComUsername]);
+
+        if (platform === 'lichess') {
+            getLichessGamesForMonth(username, archiveUrl)
+                .then(data => {
+                    const processed = data.map(game => {
+                        const { userResult, userColor } = determineUserResult(
+                            { ...game, white: { ...game.white, result: '' }, black: { ...game.black, result: '' }, end_time: game.endTime } as any,
+                            username
+                        );
+                        return { ...game, userResult, userColor };
+                    });
+                    setGames(processed);
+                })
+                .catch(() => setError("Failed to fetch games for this period."))
+                .finally(() => setLoading(prev => ({ ...prev, games: false })));
+        } else {
+            getGamesFromArchive(archiveUrl)
+                .then(data => {
+                    const processed = data.games.map((game: ChessComGame) => {
+                        const { userResult, userColor } = determineUserResult(game, username);
+                        return {
+                            id: game.url,
+                            ...game,
+                            userResult,
+                            userColor,
+                            endTime: game.end_time,
+                            white: { ...game.white, ratingDiff: null },
+                            black: { ...game.black, ratingDiff: null }
+                        };
+                    }).reverse();
+                    setGames(processed);
+                })
+                .catch(() => setError("Failed to fetch games for this period."))
+                .finally(() => setLoading(prev => ({ ...prev, games: false })));
+        }
+    }, [username, platform]);
 
     const handleToggleSelect = (game: ProcessedGame) => {
         if (duplicateUrls.has(game.url)) return;
@@ -357,8 +393,9 @@ const ImportPage: React.FC = () => {
 
     const nonDuplicateCount = selectedGames.filter(g => !duplicateUrls.has(g.url)).length;
 
-    if (!settings.chessComUsername) {
-        return <div className="text-center p-8 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">Please set your Chess.com username in the settings page.</div>;
+    if (!username) {
+        const platformName = platform === 'lichess' ? 'Lichess' : 'Chess.com';
+        return <div className="text-center p-8 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">Please set your {platformName} username in the settings page.</div>;
     }
 
     return (
@@ -370,8 +407,13 @@ const ImportPage: React.FC = () => {
                         <div>
                             <div className="flex flex-wrap gap-2">
                                 {paginatedArchives.map(url => {
-                                    const match = url.match(/(\d{4})\/(\d{2})$/);
-                                    const label = match ? `${match[1]}/${match[2]}` : '...';
+                                    let label = '...';
+                                    if (platform === 'lichess') {
+                                        label = url; // Already in YYYY/MM format
+                                    } else {
+                                        const match = url.match(/(\d{4})\/(\d{2})$/);
+                                        label = match ? `${match[1]}/${match[2]}` : '...';
+                                    }
                                     return (
                                         <button key={url} onClick={() => fetchGames(url)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedArchive === url ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>{label}</button>
                                     );

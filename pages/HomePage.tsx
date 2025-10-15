@@ -44,11 +44,11 @@ const HomePage: React.FC = () => {
                 <p className="text-lg text-gray-600 dark:text-gray-400">Select a service to import your games or view your statistics.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <NavButton icon={ICONS.PAWN} title="Chess.com" onClick={() => navigate('/import')} />
-                <NavButton icon={ICONS.KNIGHT} title="Lichess" disabled comingSoon />
+                <NavButton icon={ICONS.PAWN} title="Chess.com" onClick={() => navigate('/import?platform=chesscom')} />
+                <NavButton icon={ICONS.KNIGHT} title="Lichess" onClick={() => navigate('/import?platform=lichess')} />
             </div>
             <div className="mt-8">
-                 <NavButton icon={ICONS.STATS_CHART} title="Statistics" subtitle="View your game stats" onClick={() => navigate('/stats')} />
+                <NavButton icon={ICONS.STATS_CHART} title="Statistics" subtitle="View your game stats" onClick={() => navigate('/stats')} />
             </div>
         </div>
     );
