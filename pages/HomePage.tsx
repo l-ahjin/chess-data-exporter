@@ -47,9 +47,6 @@ const HomePage: React.FC = () => {
                 <NavButton icon={ICONS.PAWN} title="Chess.com" onClick={() => navigate('/import?platform=chesscom')} />
                 <NavButton icon={ICONS.KNIGHT} title="Lichess" onClick={() => navigate('/import?platform=lichess')} />
             </div>
-            <div className="mt-8">
-                <NavButton icon={ICONS.STATS_CHART} title="Statistics" subtitle="View your game stats" onClick={() => navigate('/stats')} />
-            </div>
         </div>
     );
 };
