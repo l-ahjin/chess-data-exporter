@@ -3,6 +3,7 @@
 
 import { Client } from '@notionhq/client';
 import type { ProcessedGame } from '../types';
+import {CreatePageParameters} from "@notionhq/client/build/src/api-endpoints";
 
 // Define types for Vercel's request and response objects for type safety.
 // In a real Vercel project, you might install `@vercel/node` for these types.
@@ -64,67 +65,55 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
             // Define the structure for the Notion page properties
             const properties: Record<string, any> = {
                 '매치업': {
-                    type: 'title',
-                    title: [
-                        {
-                            type: 'text',
-                            text: { content: `⚪ ${game.white.username} 🆚 ⚫ ${game.black.username}` },
-                        },
-                    ],
+                    title: [ { type: "text", text: { content: `⚪ ${game.white.username} 🆚 ⚫ ${game.black.username}` } } ]
                 },
-                '날짜': {
-                    type: 'date',
-                    date: {
-                        start: new Date(game.endTime * 1000).toISOString(),
-                    },
-                },
-                '플랫폼': {
-                    type: 'select',
-                    select: {
-                        name: platform,
-                    },
-                },
-                '유형': {
-                    type: 'select',
-                    select: {
-                        name: game.rated ? '레이팅' : '캐주얼',
-                    },
-                },
-                '색': {
-                    type: 'select',
-                    select: {
-                        name: game.userColor,
-                    },
-                },
-                '결과': {
-                    type: 'select',
-                    select: {
-                        name: game.userResult === "win" ? '승리' : game.userResult === "loss" ? "패배" : "무승부",
-                    },
-                },
-                '타임 컨트롤': {
-                    type: 'select',
-                    select: {
-                        name: game.time_control,
-                    },
-                },
-                '링크': {
-                    type: 'url',
-                    url: game.url,
-                },
-                '최종 레이팅': {
-                    type: 'number',
-                    number: game.userColor === 'white' ? game.white.rating : game.black.rating
-                },
-                '상대 최종 레이팅': {
-                    type: 'number',
-                    number: game.userColor === 'white' ? game.black.rating : game.white.rating
-                },
+                '날짜': { date: { start: new Date(game.endTime * 1000).toISOString() } },
+                '플랫폼': { select: { name: platform } },
+                '유형': { select: { name: game.rated ? '레이팅' : '캐주얼' } },
+                '색': { select: { name: game.userColor } },
+                '결과': { select: { name: game.userResult === "win" ? '승리' : game.userResult === "loss" ? "패배" : "무승부" } },
+                '타임 카테고리': { select: { name: game.time_class } },
+                '타임 컨트롤': { select: { name: game.time_control } },
+                '링크': { url: game.url },
+                '내 레이팅 변동': { number: game.userColor === 'white' ? game.white.ratingDiff : game.black.ratingDiff },
+                '상대 레이팅 변동': { number: game.userColor === 'white' ? game.black.ratingDiff : game.white.ratingDiff },
+                '최종 레이팅': { number: game.userColor === 'white' ? game.white.rating : game.black.rating },
+                '상대 최종 레이팅': { number: game.userColor === 'white' ? game.black.rating : game.white.rating },
+                '백': { rich_text: [ { text: { content: game.white.username } } ] },
+                '흑': { rich_text: [ { text: { content: game.black.username } } ] },
             };
 
+            function toRichTextChunks(str: string, chunkSize = 2000) {
+                const chunks = [];
+                for (let i = 0; i < str.length; i+=chunkSize) {
+                    chunks.push({ type: "text",  text: { content: str.slice(i, i+chunkSize) } } );
+                }
+                return chunks;
+            }
+
+            const children: CreatePageParameters['children'] = [
+                {
+                    object: "block", type: 'toggle',
+                    toggle: {
+                        rich_text: [ { type: "text", text: { content: "PGN" } } ],
+                        children: [ { object: "block", type: 'code', code: { language: 'plain text', rich_text: toRichTextChunks(game.pgn) } } ]
+                    }
+                },
+                { object: "block", type: "divider", divider: {} },
+                { object: "block", type: "heading_1", heading_1: { rich_text: [ { type: "text", text: { content: "게임 목표" } } ] } },
+                { object: "block", type: "to_do", to_do: { rich_text: [] } },
+                { object: "block", type: "heading_1", heading_1: { rich_text: [ { type: "text", text: { content: "복기" } } ] } },
+                { object: "block", type: "heading_2", heading_2: { rich_text: [ { type: "text", text: { content: "잘한 점(엔진 분석 없이)" } } ] } },
+                { object: "block", type: "bulleted_list_item", bulleted_list_item: { rich_text: [] } },
+                { object: "block", type: "heading_2", heading_2: { rich_text: [ { type: "text", text: { content: "아쉬운 점(엔진 분석 없이)" } } ] } },
+                { object: "block", type: "bulleted_list_item", bulleted_list_item: { rich_text: [] } },
+                { object: "block", type: "heading_2", heading_2: { rich_text: [ { type: "text", text: { content: "개선할 점(엔진 분석 및 리뷰 반영)" } } ] } },
+                { object: "block", type: "bulleted_list_item", bulleted_list_item: { rich_text: [] } }
+            ]
             await notion.pages.create({
                 parent: { database_id: databaseId },
                 properties: properties,
+                children: children
             });
             importedCount++;
         } catch (error) {
