@@ -16,7 +16,7 @@ const Header: React.FC = () => {
     return (
         <header className="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
             <NavLink to="/" className="transition-opacity hover:opacity-80">
-                <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">Chess Data Exporter</h1>
+                <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">NChess Log</h1>
             </NavLink>
             <nav className="flex items-center space-x-2">
                 <NavLink to="/" className={navLinkClass}>

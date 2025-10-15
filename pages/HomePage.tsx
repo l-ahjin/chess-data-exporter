@@ -41,7 +41,7 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto max-w-5xl">
             <div className="text-center mb-12">
                 <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-gray-800 dark:text-gray-200">Welcome</h1>
-                <p className="text-lg text-gray-600 dark:text-gray-400">Select a service to import your games or view your statistics.</p>
+                <p className="text-lg text-gray-600 dark:text-gray-400">Select a service to import your games.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <NavButton icon={ICONS.PAWN} title="Chess.com" onClick={() => navigate('/import?platform=chesscom')} />
