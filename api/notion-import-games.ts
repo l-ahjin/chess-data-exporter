@@ -69,7 +69,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
                 },
                 '날짜': { date: { start: new Date(game.endTime * 1000).toISOString() } },
                 '플랫폼': { select: { name: platform } },
-                '유형': { select: { name: game.rated ? '레이팅' : '캐주얼' } },
+                '유형': { select: { name: game.isGuest ? '게스트' : game.rated ? '레이팅' : '캐주얼' } },
                 '색': { select: { name: game.userColor } },
                 '결과': { select: { name: game.userResult === "win" ? '승리' : game.userResult === "loss" ? "패배" : "무승부" } },
                 '타임 카테고리': { select: { name: game.time_class } },

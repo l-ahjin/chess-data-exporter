@@ -62,6 +62,7 @@ export interface ProcessedGame {
     time_control: string;
     time_class: string;
     rated: boolean;
+    isGuest?: boolean;
     white: {
         rating: number;
         username: string;

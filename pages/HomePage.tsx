@@ -40,12 +40,28 @@ const HomePage: React.FC = () => {
     return (
         <div className="container mx-auto max-w-5xl">
             <div className="text-center mb-12">
-                <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-gray-800 dark:text-gray-200">Welcome</h1>
                 <p className="text-lg text-gray-600 dark:text-gray-400">Select a service to import your games.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <NavButton icon={ICONS.PAWN} title="Chess.com" onClick={() => navigate('/import?platform=chesscom')} />
                 <NavButton icon={ICONS.KNIGHT} title="Lichess" onClick={() => navigate('/import?platform=lichess')} />
+            </div>
+            <div className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
+                <div className="max-w-md mx-auto">
+                    <NavButton
+                        icon={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="12" y1="18" x2="12" y2="12"></line>
+                                <line x1="9" y1="15" x2="15" y2="15"></line>
+                            </svg>
+                        }
+                        title="PGN Import"
+                        subtitle="Upload PGN files directly"
+                        onClick={() => navigate('/pgn-import')}
+                    />
+                </div>
             </div>
         </div>
     );

@@ -6,6 +6,7 @@ import ImportPage from './pages/ImportPage';
 import SettingsPage from './pages/SettingsPage';
 import Header from './components/Header';
 import { SettingsProvider } from './contexts/SettingsContext';
+import PGNImportPage from "./pages/PGNImportPage.tsx";
 
 const App: React.FC = () => {
     return (
@@ -18,6 +19,7 @@ const App: React.FC = () => {
                             <Route path="/" element={<HomePage />} />
                             <Route path="/import" element={<ImportPage />} />
                             <Route path="/settings" element={<SettingsPage />} />
+                            <Route path="/pgn-import" element={<PGNImportPage />} />
                         </Routes>
                     </main>
                 </div>
