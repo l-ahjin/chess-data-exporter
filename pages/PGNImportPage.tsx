@@ -58,11 +58,43 @@ const parsePGN = (pgn: string): Partial<ProcessedGame> | null => {
         const getEndTime = (date: string | null, time: string | null): number => {
             const now = new Date();
 
-            const resolvedDate = date.replace(/\./g, '-') ?? now.toISOString().substring(0, 10); // YYYY-MM-DD
-            const resolvedTime = time ?? now.toTimeString().substring(0, 8);
+            const normalizeDate = (d: string) => d.replace(/\./g, '-'); // YYYY.MM.DD → YYYY-MM-DD
 
-            const endTime = new Date(`${resolvedDate}T${resolvedTime}`).getTime();
-            return Math.floor(endTime / 1000);
+            const parseTimeWithTimezone = (timeStr: string, baseDate: string): Date => {
+                const isoDate = `${baseDate} ${timeStr}`;
+                let dateObj: Date;
+
+                if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(timeStr)) {
+                    dateObj = new Date(isoDate);
+                } else {
+                    dateObj = new Date(`${isoDate}Z`);
+                }
+
+                return dateObj;
+            };
+
+            let endTime: Date;
+
+            if (!date && !time) {
+                endTime = now;
+            }
+
+            if (!date && time) {
+                const baseDate = now.toISOString().substring(0, 10);
+                endTime = parseTimeWithTimezone(time, baseDate);
+            }
+
+            if (date && !time) {
+                const normalizedDate = normalizeDate(date);
+                endTime = new Date(`${normalizedDate}T${now.toTimeString().split(' ')[0]}`);
+            }
+
+            if (date && time) {
+                const normalizedDate = normalizeDate(date);
+                endTime = parseTimeWithTimezone(time, normalizedDate);
+            }
+
+            return Math.floor(endTime.getTime() / 1000);
         };
 
         const isGuest = whitePlayer.startsWith('Guest') || blackPlayer.startsWith('Guest')
